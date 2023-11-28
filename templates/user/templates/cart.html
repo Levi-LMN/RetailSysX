@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <!-- Basic -->
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <!-- Mobile Metas -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <!-- Site Metas -->
+  <link rel="icon" href="../../../static/images/fevicon/retailsysX.png" type="image/gif" />
+  <meta name="keywords" content="" />
+  <meta name="description" content="" />
+  <meta name="author" content="" />
+
+  <title>RetailSysX</title>
+
+
+  <!-- bootstrap core css -->
+  <link rel="stylesheet" type="text/css" href="../static/css/bootstrap.css" />
+
+  <!-- fonts style -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <!-- font awesome style -->
+  <link href="../static/css/font-awesome.min.css" rel="stylesheet" />
+
+  <!-- Custom styles for this template -->
+  <link href="../static/css/style.css" rel="stylesheet" />
+  <!-- responsive style -->
+  <link href="../static/css/responsive.css" rel="stylesheet" />
+<link href="../../../static/css/cart.css" rel="stylesheet">
+
+</head>
+
+<body class="sub_page">
+
+  <div class="hero_area">
+    <!-- header section strats -->
+    <header class="header_section">
+      <div class="container-fluid">
+        <nav class="navbar navbar-expand-lg custom_nav-container ">
+          <a class="navbar-brand" href="{{ url_for('main') }}">
+            <span>
+              RetailSysX
+            </span>
+          </a>
+
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class=""> </span>
+          </button>
+
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav  ">
+              <li class="nav-item ">
+                <a class="nav-link" href="{{ url_for('user_main') }}">Home <span class="sr-only"></span></a>
+              </li>
+              <li class="nav-item active">
+                <a class="nav-link" href="{{ url_for('about') }}"> Cart</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('products') }}">Products</a>
+              </li>
+              <!--<li class="nav-item">
+                <a class="nav-link" href="testimonial.html">Testimonial</a>
+              </li>-->
+
+            </ul>
+            <div class="user_optio_box">
+              <a href="{{ url_for('user_login_page') }}" onclick="return confirmLogout()">
+  <i class="fa fa-user" aria-hidden="true" title="Logout as user"></i>
+</a>
+
+            </div>
+          </div>
+        </nav>
+      </div>
+    </header>
+    <!-- end header section -->
+  </div>
+
+
+
+
+
+<div class="container mt-5">
+    <h1 class="mb-4">My Shopping Cart</h1>
+<form method="POST" action="{{ url_for('process_order_route') }}">
+    <div class="card">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in cart_items %}
+                    <tr>
+                        <td>{{ item.product_name }}</td>
+                        <td>{{ item.product_price }}</td>
+                        <td>
+                            <form method="POST" action="/update_quantity">
+                                <div class="input-group">
+                                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                                    <input type="number" name="quantity" value="{{ item.quantity }}" min="1" class="form-control">
+                                    <div class="input-group-append">
+                                        <button type="submit" class="btn btn-outline-secondary">Update</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </td>
+                        <td>{{ item.product_price * item.quantity }}</td>
+                        <td>
+                            <form method="POST" action="/delete_from_cart">
+                                <input type="hidden" name="item_id" value="{{ item.id }}">
+                                <button type="submit" class="btn btn-danger">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+
+         <div class="mt-3">
+                <p>Total: {{ total }}<B></p>
+                <!-- Check if there are items in the cart before allowing form submission -->
+                {% if cart_items %}
+                    <center><button class="button" type="submit">Order</button></center>
+                {% else %}
+                    <p>Your cart is empty. Add items to proceed with the order.</p>
+                {% endif %}
+            </div>
+
+    </div>
+    </form>
+</div>
+
+
+
+
+  <!-- info section -->
+  <section class="info_section layout_padding2">
+    <div class="container">
+      <div class="info_logo">
+        <h2>
+          RetailSysX
+        </h2>
+      </div>
+      <div class="row">
+
+        <div class="col-md-3">
+          <div class="info_contact">
+            <h5>
+              About Shop
+            </h5>
+            <div>
+              <div class="img-box">
+                <img src="../static/images/location-white.png" width="18px" alt="">
+              </div>
+              <p>
+                Address
+              </p>
+            </div>
+            <div>
+              <div class="img-box">
+                <img src="../static/images/telephone-white.png" width="12px" alt="">
+              </div>
+              <p>
+                +254 1234567890
+              </p>
+            </div>
+            <div>
+              <div class="img-box">
+                <img src="../static/images/envelope-white.png" width="18px" alt="">
+              </div>
+              <p>
+                RetailSysX@gmail.com
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="info_info">
+            <h5>
+              Info
+            </h5>
+            <p>
+              Have a question about our exquisite watches or need assistance with your purchase? Our dedicated customer support team is here to help.
+            </p>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <div class="info_insta">
+            <h5>
+              Instagram
+            </h5>
+            <div class="insta_container">
+              <div class="row m-0">
+                <div class="col-4 px-0">
+                  <a href="">
+                    <div class="insta-box b-1">
+                      <img src="../static/images/w1.png" alt="">
+                    </div>
+                  </a>
+                </div>
+                <div class="col-4 px-0">
+                  <a href="">
+                    <div class="insta-box b-1">
+                      <img src="../static/images/w2.png" alt="">
+                    </div>
+                  </a>
+                </div>
+                <div class="col-4 px-0">
+                  <a href="">
+                    <div class="insta-box b-1">
+                      <img src="../static/images/w3.png" alt="">
+                    </div>
+                  </a>
+                </div>
+                <div class="col-4 px-0">
+                  <a href="">
+                    <div class="insta-box b-1">
+                      <img src="../static/images/w4.png" alt="">
+                    </div>
+                  </a>
+                </div>
+                <div class="col-4 px-0">
+                  <a href="">
+                    <div class="insta-box b-1">
+                      <img src="../static/images/w5.png" alt="">
+                    </div>
+                  </a>
+                </div>
+                <div class="col-4 px-0">
+                  <a href="">
+                    <div class="insta-box b-1">
+                      <img src="../static/images/w6.png" alt="">
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <div class="info_form ">
+            <h5>
+              Newsletter
+            </h5>
+            <form action="{{ url_for('subscribe') }}" method="post">
+              <input type="email" name="email" placeholder="Enter your email" required>
+              <button type="submit">
+                Subscribe
+              </button>
+            </form>
+            <div class="social_box">
+              <a href="">
+                <img src="../static/images/fb.png" alt="">
+              </a>
+              <a href="">
+                <img src="../static/images/twitter.png" alt="">
+              </a>
+              <a href="">
+                <img src="../static/images/linkedin.png" alt="">
+              </a>
+              <a href="">
+                <img src="../static/images/youtube.png" alt="">
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- end info_section -->
+
+  <!-- footer section -->
+  <section class="footer_section">
+    <div class="container">
+      <p>
+        &copy; <span id="displayYear"></span> Made By Central GRP For
+        <a href="https://github.com/Levi-LMN/RetailSysX">CMT 210 - Object Oriented Programming</a>
+      </p>
+    </div>
+  </section>
+  <!-- footer section -->
+
+  <!-- jQery -->
+  <script type="text/javascript" src="../static/js/jquery-3.4.1.min.js"></script>
+  <!-- popper js -->
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous">
+  </script>
+  <!-- bootstrap js -->
+  <script type="text/javascript" src="../static/js/bootstrap.js"></script>
+  <!-- custom js -->
+  <script type="text/javascript" src="../static/js/custom.js"></script>
+  <!-- Google Map -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCh39n5U-4IoWpsVGUHWdqB6puEkhRLdmI&callback=myMap">
+  </script>
+  <!-- End Google Map -->
+  <script src="../static/js/cart.js"></script>
+<script type="text/javascript" src="../../../static/js/custom.js"></script>
+
+
+
+</body>
+</html>

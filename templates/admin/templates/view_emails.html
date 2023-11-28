@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <!-- Basic -->
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <!-- Mobile Metas -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <!-- Site Metas -->
+  <link rel="icon" href="../static/images/fevicon/retailsysX.png" type="image/gif" />
+  <meta name="keywords" content="" />
+  <meta name="description" content="" />
+  <meta name="author" content="" />
+
+  <title>Admin Email</title>
+
+
+  <!-- bootstrap core css -->
+  <link rel="stylesheet" type="text/css" href="../static/css/bootstrap.css" />
+
+  <!-- fonts style -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <!-- font awesome style -->
+  <link href="../static/css/font-awesome.min.css" rel="stylesheet" />
+
+  <!-- Custom styles for this template -->
+  <link href="../static/css/style.css" rel="stylesheet" />
+  <!-- responsive style -->
+  <link href="../static/css/responsive.css" rel="stylesheet" />
+  <link href="../static/login/css/cart.css">
+</head>
+
+<body>
+
+  <div class="hero_area">
+    <!-- header section strats -->
+    <header class="header_section">
+      <div class="container-fluid">
+        <nav class="navbar navbar-expand-lg custom_nav-container ">
+          <a class="navbar-brand" href="href="{{ url_for('main') }}"">
+            <span>
+              RetailSysX
+            </span>
+          </a>
+
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class=""> </span>
+          </button>
+
+
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav  ">
+              <li class="nav-item active">
+                <a class="nav-link" href="">Admin <span class="sr-only"></span></a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_page') }}">Dashboard</a>
+              </li>
+
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('delete_user_page') }}">Users</a>
+              </li>
+
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('manage_products') }}">Products</a>
+              </li>
+
+            </ul>
+            <div class="user_optio_box">
+              <a href="{{ url_for('index') }}" onclick="return confirmLogout()">
+                <i class="fa fa-user" aria-hidden="true" title="Logout as user"></i>
+              </a>
+
+            </div>
+          </div>
+        </nav>
+      </div>
+    </header>
+    <!-- end header section -->
+<body>
+
+
+
+ <h1>Email Addresses</h1>
+ <p>These are the emails in the database that are used to login to the admin panel:</p>
+    <ul>
+        {% for email in emails %}
+            <li>{{ email.email }} <button onclick="deleteEmail({{ email.id }})">Delete</button></li>
+        {% endfor %}
+    </ul>
+
+    <form id="addEmailForm">
+        <label for="email">Add Email:</label>
+        <input type="email" id="email" name="email" required>
+        <button type="button" onclick="addEmail()">Add Email</button>
+    </form>
+
+ <script>
+  function addEmail() {
+    // Get the value of the email input
+    var emailInput = document.getElementById('email');
+    var email = emailInput.value;
+
+    // Check if the email input is not empty
+    if (email.trim() !== '') {
+        // Make the fetch request only if the email input is not empty
+        fetch('/add-email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'email': email,
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            if (data.success) {
+                // Refresh the page on success
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error adding email.');
+        });
+
+        // Clear the input field after processing
+        emailInput.value = '';
+    } else {
+        // Display an error or take appropriate action if the input is empty
+        alert('Email input is empty. Please enter an email.');
+    }
+}
+
+function deleteEmail(emailId) {
+            fetch(`/delete-email/${emailId}`, {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) {
+                    // Refresh the page on success
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deleting email.');
+            });
+        }
+
+
+    </script>
+
+
+ <!-- jQery -->
+  <script type="text/javascript" src="../static/js/jquery-3.4.1.min.js"></script>
+  <!-- popper js -->
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous">
+  </script>
+  <!-- bootstrap js -->
+  <script type="text/javascript" src="../static/js/bootstrap.js"></script>
+  <!-- custom js -->
+  <script type="text/javascript" src="../../../static/js/custom.js"></script>
+  <!-- Google Map -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCh39n5U-4IoWpsVGUHWdqB6puEkhRLdmI&callback=myMap">
+  </script>
+  <!-- End Google Map -->
+  <script src="../static/js/cart.js"></script>
+</body>
+</html>

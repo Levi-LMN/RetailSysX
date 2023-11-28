@@ -1,0 +1,120 @@
+<html>
+<head>
+  <link rel="stylesheet" href="../../../static/css/pay.css">
+
+</head>
+
+<body style="block-size: 950px;">
+<div class="iphone">
+  <header class="header">
+    <h1>Payment</h1>
+  </header>
+
+  <form  class="form" >
+    <div>
+      <h2>Address</h2>
+
+      <div class="card">
+        <address>
+          Name: {{ order.full_name }}<br />
+          Address: {{ order.address }}
+        </address>
+      </div>
+    </div>
+
+    <fieldset>
+      <legend>Payment Method</legend>
+
+      <div class="form__radios">
+
+
+    <div class="form__radio">
+        <label for="mpesa">
+            M-Pesa payment
+        </label>
+        <input id="mpesa" name="payment-method" type="radio" />
+    </div>
+
+        <div class="form__radio">
+        <label for="mastercard">
+            Mastercard payment
+        </label>
+        <input id="mastercard" name="payment-method" type="radio" />
+    </div>
+
+
+        <div class="form__radio">
+        <label for="paypal">
+            Paypal payment
+        </label>
+        <input id="paypal" name="payment-method" type="radio" />
+    </div>
+
+        <div class="form__radio">
+          <label for="cash">
+            Cash on delivery
+            </label>
+          <input id="cash" name="payment-method" type="radio" />
+        </div>
+
+
+      </div>
+    </fieldset>
+
+
+    <h2>Shopping Bill</h2>
+    <div>
+      {% for item in order_items %}
+
+
+      <table>
+        <tbody>
+          <tr>
+            <td>{{ item.product_name }}</td>
+            <td align="right">{{ item.product_price }}</td>
+          </tr>
+           {% endfor %}
+
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Total</td>
+            <td align="right">{{ order.total }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div>
+      <button class="button button--full" id="buy"><svg class="icon">
+          <a href="" class="button button--full" id="buy">Buy now</a>
+
+        </svg>Buy Now</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  document.getElementById('buy').addEventListener('click', function () {
+    var paymentMethod = document.querySelector('input[name="payment-method"]:checked');
+    if (paymentMethod) {
+      var methodName = paymentMethod.id;
+      if (methodName === 'mpesa') {
+        var mpesaNumber = prompt('Please enter your M-Pesa number:');
+        if (mpesaNumber) {
+          alert('A prompt has been sent to the M-Pesa number: ' + mpesaNumber);
+          window.location.href = '/products';
+        } else {
+          alert('Invalid M-Pesa number. Please try again.');
+        }
+      } else {
+        // Handle other payment methods here if needed
+        alert('Payment method not supported yet.');
+      }
+    } else {
+      alert('Please select a payment method.');
+    }
+  });
+</script>
+</body>
+</html>

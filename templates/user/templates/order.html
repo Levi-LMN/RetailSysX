@@ -1,0 +1,65 @@
+<html>
+<head>
+<link rel="stylesheet" href="../../../static/css/product.css">
+  <link rel="stylesheet" href="../../../static/css/pay.css">
+
+</head>
+
+<body style="block-size: 950px;">
+<div class="iphone">
+
+  <header class="header">
+    <h1>Order Confirmation</h1>
+  </header>
+
+  <form  class="form" >
+    <div>
+
+
+
+
+    <fieldset>
+      <legend>Order details</legend>
+
+      <div>
+          <p><b>Full Name:</b> {{ order.full_name }}</p>
+          <p style="text-align: right;"><b>Address:</b> {{ order.address }}</p>
+    </div>
+
+    </fieldset>
+
+
+    <h2>Ordered Items</h2>
+    <div style="color: black;">
+
+     <table border="1" >
+        <tr>
+            <th>Product Name</th>
+            <th>Price</th>
+            <th>Quantity</th>
+        </tr>
+        {% for item in order_items %}
+            <tr>
+                <td>{{ item.product_name }}</td>
+                <td>${{ item.product_price }}</td>
+                <td>{{ item.quantity }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+
+         <p><b>Order ID:</b> {{ order.id }}</p>
+    <p><b>Total Amount:</b> ${{ order.total }}</p>
+    </div>
+
+    <div>
+
+          <a href="{{ url_for('pay', order_id=order.id) }}" class="button button--full" id="buy">Proceed to Payment</a>
+
+
+    </div>
+  </form>
+</div>
+
+
+</body>
+</html>

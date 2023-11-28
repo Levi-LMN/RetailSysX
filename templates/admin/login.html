@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>RetailSysX Login</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <link rel="stylesheet" href="static/login/css/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='login/css/style.css') }}">
+    <link rel="icon" href="static/images/fevicon/retailsysX.png">
+
+      <style>
+    .overlay {
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        display: none;
+    }
+
+    .loader {
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #3498db;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+  </head>
+  <body class="img js-fullheight" style="background-image: url(../static/images/bg.jpg);">
+
+
+
+
+    <section class="ftco-section">
+      <div class="container">
+        <div class="row justify-content-center">
+          <div class="col-md-6 text-center mb-5">
+            <h2 class="heading-section">RetailSysX</h2>
+          </div>
+        </div>
+        <div class="row justify-content-center">
+          <div class="col-md-6 col-lg-4">
+            <div class="login-wrap p-0">
+              <h3 class="mb-4 text-center">Admin Login</h3>
+             <i><p style="color: white;">If your email exists in our database, an OTP will be sent to the email</p></i>
+
+
+
+
+
+                  <form id="otpForm" class="signin-form">
+                      <div class="form-group">
+                          <label for="email">Enter your Email:</label>
+                          <input type="email" id="email" name="email" class="form-control" required>
+                          <button type="button" onclick="sendOTP()" class="form-control btn btn-primary submit px-3">Send OTP</button>
+                      </div>
+                      <div class="form-group">
+                          <label for="otp">Enter OTP:</label>
+                          <input type="text" id="otp" name="otp" class="form-control" required>
+                          <button type="button" onclick="verifyOTP()" class="form-control btn btn-primary submit px-3">Verify OTP</button>
+                      </div>
+                  </form>
+
+
+                </div>
+              </form>
+
+<div id="overlay" class="overlay">
+    <div class="loader"></div>
+</div>
+
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <script src="login/js/jquery.min.js"></script>
+    <script src="login/js/popper.js"></script>
+    <script src="login/js/bootstrap.min.js"></script>
+    <script src="login/js/main.js"></script>
+
+    <script src="static/js/login.js"></script>
+<script>
+    var otpSent = false;
+
+    function showOverlay() {
+    document.getElementById('overlay').style.display = 'flex';
+}
+
+function hideOverlay() {
+    document.getElementById('overlay').style.display = 'none';
+}
+
+
+    function checkAndSendOTP() {
+        var email = document.getElementById('email').value;
+
+        // Show loading overlay
+    showOverlay();
+
+        // Use fetch API to call the Flask endpoint for checking email and sending OTP
+        fetch('/check_email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                'email': email,
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+
+             // Hide loading overlay
+        hideOverlay();
+            if (data.success) {
+                // Email exists, proceed to send OTP
+                sendOTP();
+            } else {
+                // Email does not exist, show error message
+                alert("Error: " + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("Error checking email.");
+
+             // Hide loading overlay in case of an error
+        hideOverlay();
+        });
+    }
+
+    function sendOTP() {
+        var email = document.getElementById('email').value;
+
+        // Show loading overlay
+    showOverlay();
+
+        // Use fetch API to call the Flask endpoint for sending OTP
+        fetch('/send-otp', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'email': email,
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+
+            // Hide loading overlay
+        hideOverlay();
+
+            alert(data.success ? data.message : "Error sending OTP.");
+
+            // Set otpSent to true
+        otpSent = data.success;
+
+        // Update the button text
+        updateButtonText();
+
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("Error sending OTP.");
+
+             // Hide loading overlay in case of an error
+        hideOverlay();
+        });
+    }
+
+    function verifyOTP() {
+        var email = document.getElementById('email').value;
+        var otp = document.getElementById('otp').value;
+
+        // Show loading overlay
+    showOverlay();
+
+        // Use fetch API to call the Flask endpoint for verifying OTP
+        fetch('/verify-otp', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'email': email,
+                'otp': otp,
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+
+             // Hide loading overlay
+        hideOverlay();
+
+            if (data.success) {
+                // Authentication successful, redirect to main.html
+                window.location.href = '/admin_page';
+            } else {
+                // Handle authentication failure
+                alert("Error verifying OTP: " + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("Error verifying OTP.");
+
+            // Hide loading overlay in case of an error
+        hideOverlay();
+        });
+    }
+
+    function updateButtonText() {
+    var button = document.querySelector('#otpForm button');
+    if (otpSent) {
+        button.textContent = 'Resend OTP';
+    } else {
+        button.textContent = 'Send OTP';
+    }
+}
+</script>
+
+  </body>
+</html>
