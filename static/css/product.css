@@ -1,0 +1,29 @@
+.search-form {
+      display: none;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    .search-form.active {
+      display: flex;
+    }
+
+  .search-form input {
+  padding: 10px;
+  font-size: 16px;
+  background-color: #fff; /* Background color for search input */
+  border: 1px solid #ccc; /* Border color for search input */
+  border-radius: 15px; /* Rounded corners for search input */
+  margin-right: 15px;
+}
+
+
+    .search-form button {
+  padding: 10px 15px;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: #007bff; /* Blue background color for search button */
+  border: none;
+  border-radius: 15px; /* Rounded corners for search button */
+  color: #fff; /* Text color for search button */
+}

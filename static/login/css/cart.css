@@ -1,0 +1,21 @@
+
+
+#cartItems li {
+    display: inline-block;
+    width: 30%; /* Set the width to 30% for three items per row */
+    box-sizing: border-box; /* Include padding and border in the width */
+    margin-right: 10px; /* Adjust the margin as needed */
+    margin-bottom: 10px; /* Add margin at the bottom to create space between rows */
+}
+
+/* Clear the right margin for every third item */
+#cartItems li:nth-child(3n) {
+    margin-right: 0;
+}
+
+@media only screen and (max-width: 600px) {
+    /* Add styles for mobile screens */
+    .btn-box {
+        display: block; /* or any other styling suitable for mobile */
+    }
+}
