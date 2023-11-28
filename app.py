@@ -91,6 +91,21 @@ class OrderItem(db.Model):
 with app.app_context():
     db.create_all()
 
+
+
+@app.before_request
+def before_request():
+    # Add routes that should be accessible without authentication
+    exempt_routes = ['user_login_page', 'admin_login_page', 'login', 'about', 'contact', 'subscribe', 'index']
+
+    if request.endpoint not in exempt_routes and not current_user.is_authenticated:
+        flash('Please log in to access this page.', 'warning')
+        return redirect(url_for('user_login_page'))
+
+
+
+
+
 def generate_otp():
     # Generate a random 6-digit number
     return '{:06}'.format(random.randint(0, 999999))
