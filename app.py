@@ -16,6 +16,7 @@ from flask_migrate import Migrate
 import smtplib
 from flask import jsonify
 from flask import redirect, url_for
+from flask_login import logout_user
 
 
 app = Flask(__name__)
@@ -93,10 +94,19 @@ with app.app_context():
 
 
 
+
+# make sure every user is logged in no matter the link
 @app.before_request
 def before_request():
     # Add routes that should be accessible without authentication
-    exempt_routes = ['user_login_page', 'admin_login_page', 'login', 'about', 'contact', 'subscribe', 'index']
+    exempt_routes = [
+        'user_login_page', 'admin_login_page', 'login', 'subscribe', 'index', 'serve_static',
+        'verify-otp'  # Add this route for the two-factor authentication process
+    ]
+
+    # Exempt static files from authentication
+    if request.endpoint and request.endpoint.startswith('static'):
+        return
 
     if request.endpoint not in exempt_routes and not current_user.is_authenticated:
         flash('Please log in to access this page.', 'warning')
@@ -130,7 +140,7 @@ def admin_login_page():
     return render_template('admin/login.html')
 
 ##ADMIN PANEL
-# Add this line to your 'send_otp' route
+#  'send_otp' route
 @app.route('/send-otp', methods=['POST'])
 def send_otp():
     email = request.form.get('email')
@@ -148,7 +158,7 @@ def send_otp():
     send_otp_email(email, otp)
     return jsonify({"success": True, "message": "OTP sent successfully! Please check your email."})
 
-
+# verify otp
 @app.route('/verify-otp', methods=['POST'])
 def verify_otp():
     email_address = request.form.get('email')
@@ -162,12 +172,13 @@ def verify_otp():
     else:
         return jsonify({"success": False, "message": "Authentication failed."})
 
-
+# admin page after admin login
 @app.route('/admin_page')
 def admin_page():
     emails = Email.query.all()  # Fetch all email addresses from the database
     return render_template('admin/templates/index.html', emails=emails)
 
+#verify email for admin
 @app.route('/main')
 def main():
     if 'email' in session:
@@ -176,6 +187,7 @@ def main():
     else:
         return redirect(url_for('admin_page'))
 
+#load current user
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -187,11 +199,12 @@ def serve_static(filename):
     root_dir = os.path.dirname(os.getcwd())
     return send_from_directory(os.path.join(root_dir, 'static'), filename)
 
-
+# login
 @app.route('/login_page')
 def login_page():
     return render_template('login_main.html')
 
+# login route to authenticate
 @app.route('/login', methods=['POST'])
 def login():
     username = request.form['username'].strip()
@@ -209,7 +222,7 @@ def login():
 
 
     return render_template('user/templates/login_alert.html')
-
+# add new users on login page
 @app.route('/add_user', methods=['POST'])
 def add_user():
     new_username = request.form['new_username']
@@ -230,10 +243,16 @@ def add_user():
         db.session.rollback()
         return jsonify({"status": "error", "message": f'Username {new_username} already exists. Please choose a different username.'})
 
+#route for logout
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out.', 'success')
+    return redirect(url_for('index'))
 
 
 # Define the get_products function
-# Modify the get_products function
 def get_products(search_query=None):
     # Fetch products from the database using SQLAlchemy
     if search_query:
@@ -371,11 +390,11 @@ def subscribe():
 
 
 
-        # Replace with your SMTP server details
-        smtp_server = 'smtp.gmail.com'
-        smtp_port = 587
-        smtp_username = 'retailsysx@gmail.com'
-        smtp_password = 'qecs yhcc gkeq nlee'  # Use the generated app password
+         # Use environment variables for SMTP credentials
+        smtp_server = os.getenv('MAIL_SERVER')
+        smtp_port = int(os.getenv('MAIL_PORT'))
+        smtp_username = os.getenv('MAIL_USERNAME')
+        smtp_password = os.getenv('MAIL_PASSWORD')
 
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
@@ -477,11 +496,12 @@ def update_quantity():
         print(f"Error updating quantity: {str(e)}")
         return jsonify(success=False, error=str(e)), 500
 
-# Add this function to check if a product is in the cart
+# function to check if a product is in the cart
 def product_in_cart(product_name):
     if current_user.is_authenticated:
         return CartItem.query.filter_by(user_id=current_user.id, product_name=product_name).first() is not None
     return False
+
 
 # Modify the delete_user_page route
 @app.route('/delete_user_page')
@@ -534,8 +554,7 @@ def register_user():
         db.session.rollback()
         return jsonify({"status": "error", "message": f'Username {new_username} already exists. Please choose a different username.'})
 
-# ... (previous code)
-# Update the order_confirmation route
+
 # Update the order_confirmation route
 @app.route('/order_confirmation/<int:order_id>')
 def order_confirmation(order_id):
@@ -552,7 +571,7 @@ def calculate_total(user_id):
 
 
 
-# Update the process_order route
+
 # Update the process_order route
 @app.route('/process_order/<int:user_id>', methods=['GET', 'POST'])
 @login_required
@@ -599,8 +618,7 @@ def process_order_route():
     # Pass the id of the current user to the process_order route
     return render_template('user/templates/order_details_form.html', user=current_user)
 
-# Add a new route to handle the form submission
-# ...
+
 
 # Modify the submit_order route
 @app.route('/submit_order', methods=['POST'])
@@ -674,6 +692,30 @@ def pay(order_id):
 
     # Render the pay template
     return render_template('user/templates/pay.html', order=order, order_items=order_items, user=current_user)
+
+
+# Modify the cancel_order route to redirect to the products page
+@app.route('/cancel_order/<int:order_id>', methods=['POST'])
+@login_required
+def cancel_order(order_id):
+    # Fetch the order from the database
+    order = Order.query.get_or_404(order_id)
+
+    # Check if the logged-in user is the owner of the order
+    if current_user.id != order.user_id:
+        return jsonify({"status": "error", "message": "You don't have permission to cancel this order."}), 403
+
+    try:
+        # Delete the order and associated order items from the database
+        OrderItem.query.filter_by(order_id=order.id).delete()
+        db.session.delete(order)
+        db.session.commit()
+
+        return redirect(url_for('products'))  # Redirect to the products page after cancellation
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": f"Error canceling order: {str(e)}"}), 500
+
 
 
 if __name__ == '__main__':

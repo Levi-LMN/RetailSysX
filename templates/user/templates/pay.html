@@ -1,6 +1,7 @@
 <html>
 <head>
   <link rel="stylesheet" href="../../../static/css/pay.css">
+  <link rel="icon" href="../static/images/fevicon/retailsysX.png" type="image/gif" />
 
 </head>
 
@@ -90,8 +91,12 @@
           <a href="" class="button button--full" id="buy">Buy now</a>
 
         </svg>Buy Now</button>
+        
     </div>
   </form>
+  <form id="cancelOrderForm" action="{{ url_for('cancel_order', order_id=order.id) }}" method="post">
+    <button type="button" class="btn btn-danger" onclick="confirmCancel()">Cancel Order</button>
+</form>
 </div>
 
 <script>
@@ -115,6 +120,13 @@
       alert('Please select a payment method.');
     }
   });
+
+  function confirmCancel() {
+        var confirmed = confirm("Are you sure you want to cancel this order?");
+        if (confirmed) {
+            document.getElementById("cancelOrderForm").submit();
+        }
+    }
 </script>
 </body>
 </html>

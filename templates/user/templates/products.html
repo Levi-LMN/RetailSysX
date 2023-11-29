@@ -69,7 +69,7 @@
               </li>
             </ul>
             <div class="user_optio_box">
-              <a href="{{ url_for('user_login_page') }}" onclick="return confirmLogout()">
+              <a href="{{ url_for('logout') }}" onclick="return confirmLogout()">
                 <i class="fa fa-user" aria-hidden="true" title="Logout as user"></i>
               </a>
               <a href="{{ url_for('view_cart') }}">
@@ -133,9 +133,15 @@
               </div>
             </div>
           </div>
-          <div class="btn-box">
-            <a href="#" class="add-to-cart-btn" data-name="{{ product.name }}" data-price="{{ product.price }}">Add To Cart</a>
-          </div>
+          <!-- Modify the add-to-cart-btn in your products.html template -->
+<div class="btn-box">
+  {% if product_in_cart(product.name) %}
+      <span class="add-to-cart-btn">In Cart</span>
+  {% else %}
+      <a href="#" class="add-to-cart-btn" data-name="{{ product.name }}" data-price="{{ product.price }}">Add To Cart</a>
+  {% endif %}
+</div>
+
         </div>
         {% endfor %}
 
