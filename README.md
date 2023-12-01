@@ -17,6 +17,24 @@ git clone https://github.com/Levi-LMN/Retailsysx.git
 ```
 
 2. Create a virtual environment and activate it  
+a. Navigate to the root folder 
+```dockerignore
+cd Retailsysx
+```
+b. Create a virtual environment  
+```dockerignore
+python -m venv venv
+```
+c. Activate the virtual environment   
+if you are using windows, run the following command in the terminal
+```dockerignore
+venv\Scripts\activate
+```
+if you are using linux, run the following command in the terminal
+```dockerignore
+source venv/bin/activate
+```
+
 
 3. Install the dependencies  
 
