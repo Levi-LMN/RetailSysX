@@ -13,3 +13,9 @@ pip install Flask-Login
 pip install Flask-Migrate
 
 ```
+
+to install the dependencies,  navigate to the root folder and
+run the following command in the terminal
+```
+python install_dependencies.py
+```
