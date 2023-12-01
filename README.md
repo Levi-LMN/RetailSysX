@@ -36,6 +36,7 @@ source venv/bin/activate
 ```
 
 
+
 3. Install the dependencies  
 
 You'll need the following modules installed in your pc 
@@ -133,7 +134,7 @@ Retailsysx/
 │
 ├── .env
 ├── app.py
-├── requirements.txt
+├── install_dependencies.py
 └── README.md
 ```
 
