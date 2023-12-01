@@ -129,7 +129,13 @@ Retailsysx/
 │
 ├── static/
 │   ├── css/
-│   │   └── styles.css
+│   │   ├── styles.css
+│   │   ├── bootstrap.css
+│   │   ├── cart.css
+│   │   ├── pay.css
+│   │   ├── product.css
+│   │   ├── responsive.css
+│   │   └── font-awesome.css
 │   └── images/
 │
 ├── .env
