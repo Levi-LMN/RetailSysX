@@ -101,7 +101,7 @@ def before_request():
     # Add routes that should be accessible without authentication
     exempt_routes = [
         'user_login_page', 'admin_login_page', 'login', 'subscribe', 'index', 'serve_static',
-        'verify-otp'  # Add this route for the two-factor authentication process
+        'verify-otp', 'generate_otp', 'send_otp_email'   # Add this route for the two-factor authentication process
     ]
 
     # Exempt static files from authentication
@@ -120,10 +120,13 @@ def generate_otp():
     # Generate a random 6-digit number
     return '{:06}'.format(random.randint(0, 999999))
 
+
+# function to send OTP via email
 def send_otp_email(email, otp):
-    msg = Message('Your OTP', recipients=[email])
-    msg.body = f'Your OTP is: {otp}'
+    msg = Message('<strong>Your OTP</strong>', recipients=[email])
+    msg.html = f'<p>Your OTP is: <strong>{otp}</strong></p>'
     mail.send(msg)
+
 
 @app.route('/')
 def index():
@@ -716,7 +719,31 @@ def cancel_order(order_id):
         db.session.rollback()
         return jsonify({"status": "error", "message": f"Error canceling order: {str(e)}"}), 500
 
+# Set the path for the uploads folder
+UPLOAD_FOLDER = os.path.join('static', 'images', 'uploads')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+# Ensure the UPLOAD_FOLDER exists
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+@app.route('/upload_file', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return redirect(request.url)
+
+    file = request.files['file']
+
+    if file.filename == '':
+        return redirect(request.url)
+
+    if file:
+        # Save the file to the uploads folder
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
+        return 'File uploaded successfully!'
+
+@app.route('/upload')
+def upload():
+    return render_template('admin/templates/upload.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
