@@ -1,6 +1,7 @@
 # app.py
 import os
 from dotenv import load_dotenv
+from config import Config
 
 load_dotenv()
 
@@ -17,18 +18,12 @@ import smtplib
 from flask import jsonify
 from flask import redirect, url_for
 from flask_login import logout_user
+from werkzeug.utils import secure_filename
+from flask import send_from_directory
 
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
-app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT'))
-app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS').lower() == 'true'
-app.config['MAIL_USE_SSL'] = os.getenv('MAIL_USE_SSL').lower() == 'true'
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI')
+app.config.from_object(Config)  # Load configuration from the Config class
 
 mail = Mail(app)
 otp_storage = {}  # Temporary storage for demonstration purposes
@@ -71,6 +66,7 @@ class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
     price = db.Column(db.Float, nullable=False)
+    image_filename = db.Column(db.String(255), nullable=True)
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -263,8 +259,22 @@ def get_products(search_query=None):
     else:
         products = Product.query.all()
 
-    products_data = [{'name': product.name, 'price': product.price} for product in products]
+    # Create a list of dictionaries with the required attributes
+    products_data = [
+        {
+            'id': product.id,
+            'name': product.name,
+            'price': product.price,
+            'image_filename': product.image_filename,  # Include the image_filename attribute
+        }
+        for product in products
+    ]
+
     return products_data
+
+@app.route('/static/images/products/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
 # Route for the products page
@@ -288,36 +298,80 @@ def manage_products():
     products = Product.query.all()
     return render_template('admin/templates/manage_products.html', products=products)
 
+UPLOAD_FOLDER = 'static/images/products'
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif'}
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Function to check if the file extension is allowed
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+
 # Route to add a product
-@app.route('/add-product', methods=['POST'])
+@app.route('/add-product', methods=['GET', 'POST'])
 def add_product():
     name = request.form.get('product_name')
     price = float(request.form.get('product_price'))
+    image = request.files.get('product_image')
 
-    new_product = Product(name=name, price=price)
+    # Check if a file is selected
+    if image is None or image.filename == '':
+        return jsonify({"status": "error", "message": "No file selected for the product image"})
+
+    # Check if the file type is allowed
+    if not allowed_file(image.filename):
+        return jsonify({"status": "error", "message": "Invalid file type. Allowed types are jpg, jpeg, png, gif"})
 
     try:
+        new_product = Product(name=name, price=price)
+
         db.session.add(new_product)
         db.session.commit()
+
+        # Save image to the file system
+        filename = secure_filename(image.filename)
+        image_path = os.path.join(UPLOAD_FOLDER, str(new_product.id), filename)
+        os.makedirs(os.path.dirname(image_path), exist_ok=True)
+        image.save(image_path)
+
+        # Update the product's image_filename in the database
+        new_product.image_filename = os.path.join(str(new_product.id), filename)
+        db.session.commit()
+
         return redirect('/manage-products')
     except Exception as e:
         db.session.rollback()
         return jsonify({"status": "error", "message": f"Error adding product: {str(e)}"})
 
+
 # Route to delete a product
 @app.route('/delete-product', methods=['POST'])
 def delete_product():
-    product_id = int(request.form.get('product_id'))
-    product = Product.query.get_or_404(product_id)
+    product_id = request.form.get('product_id')
 
-    try:
-        db.session.delete(product)
-        db.session.commit()
-        return redirect('/manage-products')
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"status": "error", "message": f"Error deleting product: {str(e)}"})
+    # Fetch the product from the database
+    product = Product.query.get(product_id)
 
+    # Check if the product exists
+    if product:
+        try:
+            # Delete the associated image file
+            image_path = os.path.join(app.config['UPLOAD_FOLDER'], product.image_filename)
+            if os.path.exists(image_path):
+                os.remove(image_path)
+
+            # Delete the product from the database
+            db.session.delete(product)
+            db.session.commit()
+
+            return redirect('/manage-products')
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"status": "error", "message": f"Error deleting product: {str(e)}"})
+    else:
+        return jsonify({"status": "error", "message": "Product not found"})
 
 
 # Route for the index page (main route)
@@ -719,31 +773,6 @@ def cancel_order(order_id):
         db.session.rollback()
         return jsonify({"status": "error", "message": f"Error canceling order: {str(e)}"}), 500
 
-# Set the path for the uploads folder
-UPLOAD_FOLDER = os.path.join('static', 'images', 'uploads')
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-# Ensure the UPLOAD_FOLDER exists
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-@app.route('/upload_file', methods=['POST'])
-def upload_file():
-    if 'file' not in request.files:
-        return redirect(request.url)
-
-    file = request.files['file']
-
-    if file.filename == '':
-        return redirect(request.url)
-
-    if file:
-        # Save the file to the uploads folder
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
-        return 'File uploaded successfully!'
-
-@app.route('/upload')
-def upload():
-    return render_template('admin/templates/upload.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

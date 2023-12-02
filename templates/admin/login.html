@@ -183,7 +183,7 @@ function hideOverlay() {
         })
         .catch(error => {
             console.error('Error:', error);
-            alert("Error sending OTP.");
+            alert("Email doesnt exist in our database.");
 
              // Hide loading overlay in case of an error
         hideOverlay();

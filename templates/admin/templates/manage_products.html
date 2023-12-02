@@ -84,12 +84,16 @@
 
     <!-- Add Product Form -->
     <h2>Add Product</h2>
-    <form action="/add-product" method="POST">
+    <form action="/add-product" enctype="multipart/form-data" method="POST">
         <label for="product-name">Product Name:</label>
         <input type="text" id="product-name" name="product_name" required>
 
         <label for="product-price">Product Price:</label>
         <input type="number" id="product-price" name="product_price" step="0.01" required>
+
+         <label for="product-image">Product Image:</label>
+        <input type="file" id="product-image" name="product_image" accept="image/*" required>
+
 
         <button type="submit">Add Product</button>
     </form>
@@ -111,7 +115,7 @@
         {% endfor %}
     </ul>
 
-<a href="{{ url_for('upload') }}">Go to Upload Page</a>
+
  <!-- jQery -->
   <script type="text/javascript" src="../static/js/jquery-3.4.1.min.js"></script>
   <!-- popper js -->
