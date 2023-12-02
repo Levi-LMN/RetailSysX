@@ -119,7 +119,7 @@ def generate_otp():
 
 # function to send OTP via email
 def send_otp_email(email, otp):
-    msg = Message('<strong>Your OTP</strong>', recipients=[email])
+    msg = Message('Your OTP for Retailsysx', recipients=[email])
     msg.html = f'<p>Your OTP is: <strong>{otp}</strong></p>'
     mail.send(msg)
 
