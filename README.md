@@ -136,6 +136,9 @@ Retailsysx/
 │   │   ├── product.css
 │   │   ├── responsive.css
 │   │   └── font-awesome.css
+|   ├── js/
+│   │   ├── custom.js
+│   │   └── cart.js
 │   └── images/
 │
 ├── .env
