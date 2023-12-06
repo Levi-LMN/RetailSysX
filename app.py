@@ -102,11 +102,34 @@ def generate_otp():
 
 
 # function to send OTP via email
-def send_otp_email(email, otp):
-    msg = Message('<strong>Your OTP</strong>', recipients=[email])
-    msg.html = f'<p>Your OTP is: <strong>{otp}</strong></p>'
-    mail.send(msg)
 
+def send_otp_email(email, otp):
+    subject = "Retailsysx OTP"
+    greeting = "Hello,"
+    verification_code_text = "Your verification code:"
+    verification_code = str(otp)
+    warning = "Please do not share this code with anyone."
+    operation_link = "If you did not initiate this operation, click [here](https://www.retailsysx.com/en/support) to disable your account and then click the link below to contact retailsysx Customer Service:"
+    retailsysx_support_link = "Retailsysx Support"
+    retailsysx_team = "Retailsysx Team"
+    automated_message = "Automated message. Please do not reply."
+
+    # Construct the HTML content for the email
+    html_content = f"""
+        <p>{subject}</p>
+        <p>{greeting}</p>
+        <p>{verification_code_text}</p>
+        <span style="padding:5px 0;font-size:20px;font-weight:bolder;color:#e9b434">{verification_code}</span>
+        <p>{warning}</p>
+        <p>{operation_link} <a href="{retailsysx_support_link}">{retailsysx_support_link}</a></p>
+        <p>{retailsysx_team}</p>
+        <p>{automated_message}</p>
+    """
+
+    # Create and send the email message
+    msg = Message(subject, recipients=[email])
+    msg.html = html_content
+    mail.send(msg)
 
 @app.route('/')
 def index():
