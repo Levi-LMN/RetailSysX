@@ -167,7 +167,7 @@ The application also allows users to view their orders.
 The application uses Flask-Mail to send users an email after they place an order.  
 The application uses Stripe to process payments.
 
-## security
+## Security
 The application uses the following security measures:  
 * Passwords are hashed using the Werkzeug security module 
 * User sessions are protected using the Flask-Login module  
