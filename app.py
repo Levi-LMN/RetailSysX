@@ -28,23 +28,20 @@ app.config.from_object(Config)  # Load configuration from the Config class
 mail = Mail(app)
 otp_storage = {}  # Temporary storage for demonstration purposes
 
+
+ # Configure the database connection
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///retailsysx.db'
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 
 
-# Configure SQLAlchemy
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
-# Define the User model
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     cart_items = db.relationship('CartItem', backref='user', lazy=True)
 
-
-
-# Define the CartItem model
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
@@ -52,16 +49,10 @@ class CartItem(db.Model):
     product_price = db.Column(db.Float, nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
 
-# Define the Email model
-
 class Email(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
 
-    def __repr__(self):
-        return f"Email('{self.address}')"
-
-# Define the Product model
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
@@ -72,9 +63,9 @@ class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
     total = db.Column(db.Float, nullable=False)
-    items = db.relationship('OrderItem', backref='order', lazy=True)
     full_name = db.Column(db.String(100), nullable=False)
     address = db.Column(db.String(255), nullable=False)
+    items = db.relationship('OrderItem', backref='order', lazy=True)
 
 class OrderItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -84,20 +75,13 @@ class OrderItem(db.Model):
     quantity = db.Column(db.Integer, nullable=False)
 
 
-# Create the tables within the application context
-with app.app_context():
-    db.create_all()
-
-
-
-
 # make sure every user is logged in no matter the link
 @app.before_request
 def before_request():
     # Add routes that should be accessible without authentication
     exempt_routes = [
         'user_login_page', 'admin_login_page', 'login', 'subscribe', 'index', 'serve_static',
-        'verify-otp', 'generate_otp', 'send_otp_email'   # Add this route for the two-factor authentication process
+        'verify_otp', 'generate_otp', 'send_otp_email', 'add_user', 'send_otp'   # Add this route for the two-factor authentication process
     ]
 
     # Exempt static files from authentication
@@ -119,7 +103,7 @@ def generate_otp():
 
 # function to send OTP via email
 def send_otp_email(email, otp):
-    msg = Message('Your OTP for Retailsysx', recipients=[email])
+    msg = Message('<strong>Your OTP</strong>', recipients=[email])
     msg.html = f'<p>Your OTP is: <strong>{otp}</strong></p>'
     mail.send(msg)
 
@@ -157,6 +141,9 @@ def send_otp():
     send_otp_email(email, otp)
     return jsonify({"success": True, "message": "OTP sent successfully! Please check your email."})
 
+
+
+
 # verify otp
 @app.route('/verify-otp', methods=['POST'])
 def verify_otp():
@@ -170,6 +157,10 @@ def verify_otp():
         return jsonify({"success": True, "message": "Authentication successful!"}), 302
     else:
         return jsonify({"success": False, "message": "Authentication failed."})
+
+
+
+
 
 # admin page after admin login
 @app.route('/admin_page')
@@ -347,6 +338,8 @@ def add_product():
 
 
 # Route to delete a product
+
+
 @app.route('/delete-product', methods=['POST'])
 def delete_product():
     product_id = request.form.get('product_id')
