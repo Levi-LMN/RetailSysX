@@ -20,7 +20,7 @@ from flask import redirect, url_for
 from flask_login import logout_user
 from werkzeug.utils import secure_filename
 from flask import send_from_directory
-
+from flask import Flask, jsonify, abort
 
 app = Flask(__name__)
 app.config.from_object(Config)  # Load configuration from the Config class
@@ -94,6 +94,16 @@ def before_request():
 
 
 
+# Customized Unauthorized error handler
+@app.errorhandler(401)
+def unauthorized_error(error):
+    response = jsonify({'error': 'Unauthorized access', 'message': 'You need to login as a user'})
+    return response, 401
+
+# Route that triggers an unauthorized access error
+@app.route('/unauthorized')
+def unauthorized_route():
+    abort(401)
 
 
 def generate_otp():
@@ -792,3 +802,4 @@ def cancel_order(order_id):
 
 if __name__ == '__main__':
     app.run(debug=True)
+

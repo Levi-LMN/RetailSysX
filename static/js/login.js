@@ -20,7 +20,7 @@ function validateAndSubmit(event) {
     var regex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
 
     if (!regex.test(password)) {
-        alert("Password must contain at least one number, one uppercase letter, one lowercase letter, and be at least 8 characters long.");
+        alert("Password must contain at least:\none number \none uppercase letter \none lowercase letter \nand be at least 8 characters long.");
     } else {
         // Submit the form
         fetch('/add_user', {
