@@ -21,6 +21,16 @@ from flask_login import logout_user
 from werkzeug.utils import secure_filename
 from flask import send_from_directory
 from flask import Flask, jsonify, abort
+from flask import Flask, render_template, request, flash, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+from flask_mail import Mail, Message
+from datetime import datetime, timedelta
+import secrets
+from sqlalchemy.exc import IntegrityError
+
+
+
 
 app = Flask(__name__)
 app.config.from_object(Config)  # Load configuration from the Config class
@@ -34,6 +44,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///retailsysx.db'
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 login_manager = LoginManager(app)
+bcrypt = Bcrypt(app)
 
 
 class User(UserMixin, db.Model):
@@ -41,6 +52,9 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     cart_items = db.relationship('CartItem', backref='user', lazy=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    reset_token = db.Column(db.String(32), nullable=True)
+    reset_token_expiration = db.Column(db.DateTime, nullable=True)
 
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -74,7 +88,7 @@ class OrderItem(db.Model):
     product_price = db.Column(db.Float, nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
 
-
+'''
 # make sure every user is logged in no matter the link
 @app.before_request
 def before_request():
@@ -91,7 +105,7 @@ def before_request():
     if request.endpoint not in exempt_routes and not current_user.is_authenticated:
         flash('Please log in to access this page.', 'warning')
         return redirect(url_for('user_login_page'))
-
+'''
 
 
 # Customized Unauthorized error handler
@@ -245,26 +259,43 @@ def login():
 
 
     return render_template('user/templates/login_alert.html')
+
+
+@app.route('/add_user_page')
+def add_user_page():
+    return render_template('user/templates/add_user.html')
+
 # add new users on login page
 @app.route('/add_user', methods=['POST'])
 def add_user():
     new_username = request.form['new_username']
     new_password = request.form['new_password']
+    new_email = request.form['new_email']
 
     if not new_username or not new_password:
         return 'Username and password are required.'
 
     hashed_password = generate_password_hash(new_password)
 
-    new_user = User(username=new_username, password=hashed_password)
+    # Check if the username already exists
+    existing_user = User.query.filter_by(username=new_username).first()
+    if existing_user:
+        return jsonify({"status": "error",
+                        "message": f'Username {new_username} already exists. Please choose a different username.'})
+
+
+
+    new_user = User(username=new_username, password=hashed_password, email=new_email)
 
     try:
         db.session.add(new_user)
         db.session.commit()
         return jsonify({"status": "success", "message": f'User {new_username} added successfully! \n you may now Login'})
-    except:
+    except Exception as e:
+        print(f"Error adding user: {str(e)}")  # Print the error for debugging
         db.session.rollback()
-        return jsonify({"status": "error", "message": f'Username {new_username} already exists. Please choose a different username.'})
+        return jsonify({"status": "error", "message": f'Error adding user: {str(e)}'})
+
 
 #route for logout
 @app.route('/logout')
@@ -800,6 +831,51 @@ def cancel_order(order_id):
         return jsonify({"status": "error", "message": f"Error canceling order: {str(e)}"}), 500
 
 
+def generate_reset_token():
+    return secrets.token_urlsafe(32)
+
+
+def send_reset_email(user):
+    token = generate_reset_token()
+    user.reset_token = token
+    user.reset_token_expiration = datetime.utcnow() + timedelta(minutes=30)
+    db.session.commit()
+
+    msg = Message('Password Reset Request', sender='your@gmail.com', recipients=[user.email])
+    msg.body = f'To reset your password, click the following link: {url_for("reset_password", token=token, _external=True)}'
+    mail.send(msg)
+
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        user = User.query.filter_by(email=email).first()
+        if user:
+            send_reset_email(user)
+            flash('An email has been sent with instructions to reset your password.', 'info')
+            return redirect(url_for('login'))
+        else:
+            flash('Email not found. Please check your email address.', 'danger')
+    return render_template('forgot_password.html')
+
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    user = User.query.filter_by(reset_token=token).first()
+    if user and user.reset_token_expiration > datetime.utcnow():
+        if request.method == 'POST':
+            user.password = bcrypt.generate_password_hash(request.form.get('password')).decode('utf-8')
+            user.reset_token = None
+            user.reset_token_expiration = None
+            db.session.commit()
+            flash('Your password has been reset successfully. You can now log in.', 'success')
+            return redirect(url_for('login'))
+        return render_template('reset_password.html', token=token)
+    else:
+        flash('Invalid or expired token. Please try again.', 'danger')
+        return redirect(url_for('forgot_password'))
+
+
 if __name__ == '__main__':
     app.run(debug=True)
-
