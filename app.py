@@ -283,6 +283,12 @@ def add_user():
         return jsonify({"status": "error",
                         "message": f'Username {new_username} already exists. Please choose a different username.'})
 
+    # Check if the email already exists
+    existing_email = User.query.filter_by(email=new_email).first()
+    if existing_email:
+        return jsonify({"status": "error",
+                        "message": f'The email {new_email} is already registered. Please choose a different email.'})
+
 
 
     new_user = User(username=new_username, password=hashed_password, email=new_email)
@@ -646,19 +652,35 @@ def delete_user():
     else:
         return jsonify({"status": "error", "message": "User not found."})
 
-# Add this route to add a new user
+# Add this route to add a new user in the admin panel
 @app.route('/register_user', methods=['POST'])
 @login_required
 def register_user():
     new_username = request.form['new_username']
     new_password = request.form['new_password']
+    new_email = request.form['new_email']
 
-    if not new_username or not new_password:
+
+    if not new_username or not new_password or not new_email:
         return 'Username and password are required.'
 
     hashed_password = generate_password_hash(new_password)
 
-    new_user = User(username=new_username, password=hashed_password)
+    # Check if the username already exists
+    existing_user = User.query.filter_by(username=new_username).first()
+    if existing_user:
+        return jsonify({"status": "error",
+                        "message": f'Username {new_username} already exists. Please choose a different username.'})
+
+    # Check if the email already exists
+    existing_email = User.query.filter_by(email=new_email).first()
+    if existing_email:
+        return jsonify({"status": "error",
+                        "message": f'The email {new_email} is already registered. Please choose a different email.'})
+
+
+
+    new_user = User(username=new_username, password=hashed_password, email=new_email)
 
     try:
         db.session.add(new_user)
@@ -831,6 +853,10 @@ def cancel_order(order_id):
         return jsonify({"status": "error", "message": f"Error canceling order: {str(e)}"}), 500
 
 
+@app.route('/forgot_pass')
+def forgot_pass():
+    return render_template('user/templates/forgot_password.html')
+
 def generate_reset_token():
     return secrets.token_urlsafe(32)
 
@@ -854,24 +880,35 @@ def forgot_password():
         if user:
             send_reset_email(user)
             flash('An email has been sent with instructions to reset your password.', 'info')
-            return redirect(url_for('login'))
+           # return redirect(url_for('user_login_page'))  # Redirect to the user_login_page route
         else:
             flash('Email not found. Please check your email address.', 'danger')
-    return render_template('forgot_password.html')
-
+    return render_template('user/templates/forgot_password.html')
 
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     user = User.query.filter_by(reset_token=token).first()
+
     if user and user.reset_token_expiration > datetime.utcnow():
         if request.method == 'POST':
-            user.password = bcrypt.generate_password_hash(request.form.get('password')).decode('utf-8')
+            new_password = request.form.get('password')
+            if not new_password:
+                flash('Password is required.', 'danger')
+                return redirect(url_for('reset_password', token=token))
+
+            # Use the same hashing method used when adding the user
+            user.password = generate_password_hash(new_password)
+
             user.reset_token = None
             user.reset_token_expiration = None
+
             db.session.commit()
+
             flash('Your password has been reset successfully. You can now log in.', 'success')
-            return redirect(url_for('login'))
-        return render_template('reset_password.html', token=token)
+            # return redirect(url_for('login'))
+
+        return render_template('user/templates/reset_password.html', token=token)
+
     else:
         flash('Invalid or expired token. Please try again.', 'danger')
         return redirect(url_for('forgot_password'))

@@ -51,12 +51,12 @@
                     </label>
                   </div>
                   <div class="w-50 text-md-right">
-                    <a href="#" style="color: #fff">Forgot Password</a>
+                    <a href="{{ url_for('forgot_pass') }}" style="color: #fff">Forgot Password</a>
                   </div>
                 </div>
               </form>
 
-                <h3 id="newUserHeading" class="mb-4 text-center"> New User ? <i>click here</i> </h3>
+                <h3 id="newUserHeading" class="mb-4 text-center"> New User ?</h3>
                 <p>Don't have an account? <a href="{{ url_for('add_user_page') }}">Create one here</a>.</p>
 
 
