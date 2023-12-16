@@ -2,8 +2,8 @@
 import os
 from dotenv import load_dotenv
 from config import Config
+from smtplib import SMTPException
 
-load_dotenv()
 
 from flask import Flask, render_template, jsonify, request, redirect, url_for, session, abort, flash
 from flask_sqlalchemy import SQLAlchemy
@@ -28,13 +28,15 @@ from flask_mail import Mail, Message
 from datetime import datetime, timedelta
 import secrets
 from sqlalchemy.exc import IntegrityError
-
+from flask import Flask, render_template, request, redirect, flash, url_for
+from flask_mail import Mail, Message
+import socket
 
 
 
 app = Flask(__name__)
 app.config.from_object(Config)  # Load configuration from the Config class
-
+load_dotenv()
 mail = Mail(app)
 otp_storage = {}  # Temporary storage for demonstration purposes
 
@@ -173,21 +175,27 @@ def admin_login_page():
 #  'send_otp' route
 @app.route('/send-otp', methods=['POST'])
 def send_otp():
-    email = request.form.get('email')
+    try:
+        email = request.form.get('email')
 
-    # Check if the email exists in the Email model
-    existing_email = Email.query.filter_by(email=email).first()
-    if not existing_email:
-        abort(400, "Email does not exist. Please register first.")
+        # Check if the email exists in the Email model
+        existing_email = Email.query.filter_by(email=email).first()
+        if not existing_email:
+            abort(400, "Email does not exist. Please register first.")
 
-    otp = generate_otp()
-    otp_storage[email] = otp  # Store OTP temporarily for verification
+        otp = generate_otp()
+        otp_storage[email] = otp  # Store OTP temporarily for verification
 
-    print(f'Generated OTP for {email}: {otp}')
+        print(f'Generated OTP for {email}: {otp}')
 
-    send_otp_email(email, otp)
-    return jsonify({"success": True, "message": "OTP sent successfully! Please check your email."})
+        send_otp_email(email, otp)
+        return jsonify({"success": True, "message": "OTP sent successfully! Please check your email."})
+    except (SMTPException, ConnectionResetError) as e:
+        # Log the error for debugging purposes
+        print(f"Error sending email: {e}")
 
+        # Return an error response
+        return jsonify({"error": "Failed to send OTP"}), 500
 
 
 
@@ -872,18 +880,28 @@ def send_reset_email(user):
     mail.send(msg)
 
 
+def handle_socket_error():
+    flash('Unable to send email. Please check your internet connection.', 'error')
+    return jsonify({'error': 'Unable to send email. Please check your internet connection.'})
+
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
         email = request.form.get('email')
         user = User.query.filter_by(email=email).first()
-        if user:
-            send_reset_email(user)
-            flash('An email has been sent with instructions to reset your password.', 'info')
-           # return redirect(url_for('user_login_page'))  # Redirect to the user_login_page route
-        else:
-            flash('Email not found. Please check your email address.', 'danger')
+        try:
+            if user:
+                send_reset_email(user)
+                flash('An email has been sent with instructions to reset your password.', 'info')
+                # return jsonify({'message': 'Email sent successfully', 'type': 'success'})
+            else:
+                flash('Email not found. Please check your email address.', 'danger')
+        except socket.gaierror as e:
+            flash('Unable to send email. Please check your internet connection.', 'error')
+            # return jsonify({'message': 'Unable to send email. Please check your internet connection.', 'type': 'error'})
+
     return render_template('user/templates/forgot_password.html')
+
 
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
@@ -912,6 +930,8 @@ def reset_password(token):
     else:
         flash('Invalid or expired token. Please try again.', 'danger')
         return redirect(url_for('forgot_password'))
+
+
 
 
 if __name__ == '__main__':
