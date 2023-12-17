@@ -48,15 +48,15 @@ migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 bcrypt = Bcrypt(app)
 
-
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
-    cart_items = db.relationship('CartItem', backref='user', lazy=True)
+    cart_items = db.relationship('CartItem', backref='user', lazy=True, cascade='all, delete-orphan')
     email = db.Column(db.String(120), unique=True, nullable=False)
     reset_token = db.Column(db.String(32), nullable=True)
     reset_token_expiration = db.Column(db.DateTime, nullable=True)
+    orders = db.relationship('Order', backref='user', lazy=True)
 
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -64,6 +64,8 @@ class CartItem(db.Model):
     product_name = db.Column(db.String(80), nullable=False)
     product_price = db.Column(db.Float, nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    product = db.relationship('Product', back_populates='cart_items')
 
 class Email(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -71,9 +73,11 @@ class Email(db.Model):
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), nullable=False)
+    name = db.Column(db.String(80), unique=True, nullable=False)
     price = db.Column(db.Float, nullable=False)
     image_filename = db.Column(db.String(255), nullable=True)
+    cart_items = db.relationship('CartItem', back_populates='product')
+    order_items = db.relationship('OrderItem', back_populates='product')
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -89,6 +93,16 @@ class OrderItem(db.Model):
     product_name = db.Column(db.String(80), nullable=False)
     product_price = db.Column(db.Float, nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id', name='fk_order_item_product'), nullable=False)
+    product = db.relationship('Product', back_populates='order_items')
+
+
+class Admin(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.Integer)
+    email_id = db.Column(db.Integer, db.ForeignKey('email.id'), nullable=False)
+    is_admin = db.Column(db.Integer)
+    email = db.relationship('Email', backref='admin')
 
 '''
 # make sure every user is logged in no matter the link
@@ -533,8 +547,6 @@ def subscribe():
         return 'Subscription successful'
 
 # Route to add an item to the cart
-# Route to add an item to the cart
-# Route to add an item to the cart
 @app.route('/add_to_cart', methods=['POST'])
 @login_required
 def add_to_cart():
@@ -542,11 +554,16 @@ def add_to_cart():
         data = request.get_json()
         print(f"Received data: {data}")  # inspect the received data
         product_name = data.get('name')
-        product_price = data.get('price')
         quantity = data.get('quantity', 1)
 
+        # Query the product to get the ID
+        product = Product.query.filter_by(name=product_name).first()
+
+        if not product:
+            return jsonify(success=False, error=f"Product '{product_name}' not found"), 404
+
         # Check if the item is already in the cart
-        existing_item = CartItem.query.filter_by(user_id=current_user.id, product_name=product_name).first()
+        existing_item = CartItem.query.filter_by(user_id=current_user.id, product_id=product.id).first()
 
         if existing_item:
             # Update the quantity if the item is already in the cart
@@ -556,8 +573,9 @@ def add_to_cart():
             new_cart_item = CartItem(
                 user_id=current_user.id,
                 product_name=product_name,
-                product_price=product_price,
-                quantity=quantity
+                product_price=product.price,
+                quantity=quantity,
+                product_id=product.id
             )
 
             db.session.add(new_cart_item)
@@ -570,7 +588,6 @@ def add_to_cart():
         db.session.rollback()
         print(f"Error adding item to cart: {str(e)}")
         return jsonify(success=False, error=str(e)), 500
-
 
 @app.route('/view_cart')
 @login_required
@@ -768,49 +785,55 @@ def process_order_route():
 @app.route('/submit_order', methods=['POST'])
 @login_required
 def submit_order():
-    # Get user details from the form submission
-    full_name = request.form.get('full_name')
-    address = request.form.get('address')
-    # Get other user details fields as needed
+    try:
+        # Get user details from the form submission
+        full_name = request.form.get('full_name')
+        address = request.form.get('address')
+        # Get other user details fields as needed
 
-    # Check if the cart is empty
-    cart_items = CartItem.query.filter_by(user_id=current_user.id).all()
-    if not cart_items:
-        flash('Your cart is empty. Add items before placing an order.', 'warning')
-        return redirect(url_for('view_cart'))
+        # Check if the cart is empty
+        cart_items = CartItem.query.filter_by(user_id=current_user.id).all()
+        if not cart_items:
+            flash('Your cart is empty. Add items before placing an order.', 'warning')
+            return redirect(url_for('view_cart'))
 
-    # Calculate the total
-    total = sum(item.product_price * item.quantity for item in cart_items)
+        # Calculate the total
+        total = sum(item.product_price * item.quantity for item in cart_items)
 
-    # Create a new order
-    new_order = Order(
-        user_id=current_user.id,
-        total=total,
-        full_name=full_name,
-        address=address,
-        # Set other user details fields as needed
-    )
-    db.session.add(new_order)
-    db.session.commit()
-
-    # Add order items
-    for item in cart_items:
-        order_item = OrderItem(
-            order_id=new_order.id,
-            product_name=item.product_name,
-            product_price=item.product_price,
-            quantity=item.quantity
+        # Create a new order
+        new_order = Order(
+            user_id=current_user.id,
+            total=total,
+            full_name=full_name,
+            address=address,
+            # Set other user details fields as needed
         )
-        db.session.add(order_item)
+        db.session.add(new_order)
+        db.session.commit()
 
-    # Clear the user's cart
-    CartItem.query.filter_by(user_id=current_user.id).delete()
-    db.session.commit()
+        # Add order items
+        for item in cart_items:
+            order_item = OrderItem(
+                order_id=new_order.id,
+                product_name=item.product_name,
+                product_price=item.product_price,
+                quantity=item.quantity,
+                product_id=item.product_id  # Include the product_id in OrderItem
+            )
+            db.session.add(order_item)
 
-    # Redirect to the order confirmation page with the order ID
-    flash('Order placed successfully!', 'success')
-    return redirect(url_for('order_confirmation', order_id=new_order.id))
+        # Clear the user's cart
+        CartItem.query.filter_by(user_id=current_user.id).delete()
+        db.session.commit()
 
+        # Redirect to the order confirmation page with the order ID
+        flash('Order placed successfully!', 'success')
+        return redirect(url_for('order_confirmation', order_id=new_order.id))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error placing order: {str(e)}', 'danger')
+        return redirect(url_for('view_cart'))
 
 # Update the all_orders route
 @app.route('/all_orders')

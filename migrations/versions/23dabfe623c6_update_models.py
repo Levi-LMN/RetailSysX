@@ -1,8 +1,8 @@
-"""Initial migration
+"""update_models
 
-Revision ID: f8081cebb87f
+Revision ID: 23dabfe623c6
 Revises: 
-Create Date: 2023-12-16 01:55:24.316564
+Create Date: 2023-12-18 02:11:44.669302
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'f8081cebb87f'
+revision = '23dabfe623c6'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -29,7 +29,8 @@ def upgrade():
     sa.Column('name', sa.String(length=80), nullable=False),
     sa.Column('price', sa.Float(), nullable=False),
     sa.Column('image_filename', sa.String(length=255), nullable=True),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('name')
     )
     op.create_table('user',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -42,12 +43,22 @@ def upgrade():
     sa.UniqueConstraint('email'),
     sa.UniqueConstraint('username')
     )
+    op.create_table('admin',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.Integer(), nullable=True),
+    sa.Column('email_id', sa.Integer(), nullable=False),
+    sa.Column('is_admin', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['email_id'], ['email.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('cart_item',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('product_name', sa.String(length=80), nullable=False),
     sa.Column('product_price', sa.Float(), nullable=False),
     sa.Column('quantity', sa.Integer(), nullable=False),
+    sa.Column('product_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['product_id'], ['product.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -66,7 +77,9 @@ def upgrade():
     sa.Column('product_name', sa.String(length=80), nullable=False),
     sa.Column('product_price', sa.Float(), nullable=False),
     sa.Column('quantity', sa.Integer(), nullable=False),
+    sa.Column('product_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['order_id'], ['order.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['product_id'], ['product.id'], name='fk_order_item_product'),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###
@@ -77,6 +90,7 @@ def downgrade():
     op.drop_table('order_item')
     op.drop_table('order')
     op.drop_table('cart_item')
+    op.drop_table('admin')
     op.drop_table('user')
     op.drop_table('product')
     op.drop_table('email')
