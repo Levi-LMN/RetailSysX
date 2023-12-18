@@ -31,6 +31,7 @@ from sqlalchemy.exc import IntegrityError
 from flask import Flask, render_template, request, redirect, flash, url_for
 from flask_mail import Mail, Message
 import socket
+import logging
 
 
 
@@ -101,17 +102,17 @@ class Admin(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Integer)
     email_id = db.Column(db.Integer, db.ForeignKey('email.id'), nullable=False)
-    is_admin = db.Column(db.Integer)
+    is_admin = db.Column(db.Boolean, default=False)
     email = db.relationship('Email', backref='admin')
 
-'''
 # make sure every user is logged in no matter the link
 @app.before_request
 def before_request():
     # Add routes that should be accessible without authentication
     exempt_routes = [
         'user_login_page', 'admin_login_page', 'login', 'subscribe', 'index', 'serve_static',
-        'verify_otp', 'generate_otp', 'send_otp_email', 'add_user', 'send_otp'   # Add this route for the two-factor authentication process
+        'verify_otp', 'generate_otp', 'send_otp_email', 'add_user', 'send_otp',
+        'add_admin_page', 'delete_admin'  # Add the admin-related routes
     ]
 
     # Exempt static files from authentication
@@ -120,14 +121,21 @@ def before_request():
 
     if request.endpoint not in exempt_routes and not current_user.is_authenticated:
         flash('Please log in to access this page.', 'warning')
-        return redirect(url_for('user_login_page'))
-'''
+        if request.endpoint in ['add_admin_page', 'delete_admin']:
+            return redirect(url_for('admin_login_page'))
+        else:
+            return redirect(url_for('user_login_page'))
+
+    # If the route is admin-related, check if the user is an admin
+    if request.endpoint and request.endpoint in ['add_admin_page', 'delete_admin'] and not current_user.is_admin:
+        abort(403)  # or redirect to a forbidden page, as appropriate
+
 
 
 # Customized Unauthorized error handler
 @app.errorhandler(401)
 def unauthorized_error(error):
-    response = jsonify({'error': 'Unauthorized access', 'message': 'You need to login as a user'})
+    response = jsonify({'error': 'Unauthorized access', 'message': 'You need to login '})
     return response, 401
 
 # Route that triggers an unauthorized access error
@@ -221,14 +229,28 @@ def verify_otp():
 
     stored_otp = otp_storage.get(email_address)
 
+    logging.info(f"Verifying OTP for email: {email_address}, Stored OTP: {stored_otp}, User Input: {user_input}")
+
     if stored_otp and stored_otp == user_input:
+        # Delete stored OTP
         del otp_storage[email_address]
-        return jsonify({"success": True, "message": "Authentication successful!"}), 302
+
+        # Fetch the admin user from the database based on the email
+        admin = Admin.query.filter(Admin.email.has(email=email_address)).first()
+
+        if admin:
+            # Set the is_admin attribute to True
+            admin.is_admin = True
+            db.session.commit()  # Save the changes to the database
+
+            logging.info(f"Successful authentication for admin with email: {email_address}")
+            return jsonify({"success": True, "message": "Authentication successful!"}), 302
+        else:
+            logging.error(f"Admin not found for email: {email_address}")
+            return jsonify({"success": False, "message": "Admin not found."})
     else:
+        logging.warning(f"Authentication failed for email: {email_address}")
         return jsonify({"success": False, "message": "Authentication failed."})
-
-
-
 
 
 # admin page after admin login
@@ -236,6 +258,39 @@ def verify_otp():
 def admin_page():
     emails = Email.query.all()  # Fetch all email addresses from the database
     return render_template('admin/templates/index.html', emails=emails)
+
+# Add this route to your Flask app
+@app.route('/admin/add', methods=['GET'])
+def add_admin_page():
+    admins = Admin.query.all()
+    return render_template('admin/templates/add_admin.html', admins=admins)
+
+# Add this route to your Flask app
+# Add this route to your Flask app
+@app.route('/admin/add', methods=['POST'])
+def add_admin():
+    name = request.form.get('name')
+    email = request.form.get('email')
+    is_admin = 'is_admin' in request.form  # Checkbox value
+
+    # Fetch the email record or create a new one
+    existing_email = Email.query.filter_by(email=email).first()
+    if not existing_email:
+        existing_email = Email(email=email)
+        db.session.add(existing_email)
+        db.session.commit()
+
+    # Create the admin user
+    new_admin = Admin(name=name, email_id=existing_email.id, is_admin=is_admin)
+    db.session.add(new_admin)
+    db.session.commit()
+
+    flash('Admin user added successfully!', 'success')
+
+
+    return redirect(url_for('add_admin_page'))
+
+
 
 #verify email for admin
 @app.route('/main')

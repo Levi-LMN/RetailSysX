@@ -1,0 +1,48 @@
+<!-- add_admin.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Admin</title>
+</head>
+<body>
+    <h1>Add Admin</h1>
+
+
+
+
+    <!-- Display flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class="flashes">
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+     <!-- Display all admins -->
+<h2>All Admins</h2>
+<ul>
+    {% for admin in admins %}
+        <li>{{ admin.name }} - {{ admin.email.email }} ({{ 'Admin' if admin.is_admin else 'Not Admin' }})</li>
+    {% endfor %}
+</ul>
+
+    <form method="POST" action="{{ url_for('add_admin') }}">
+        <label for="name">Name:</label>
+        <input type="text" name="name" required><br>
+
+        <label for="email">Email:</label>
+        <input type="email" name="email" required><br>
+
+        <label for="is_admin">Is Admin:</label>
+        <input type="checkbox" name="is_admin"><br>
+
+        <input type="submit" value="Add Admin">
+    </form>
+</body>
+</html>
