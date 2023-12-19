@@ -105,6 +105,8 @@ class Admin(db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     email = db.relationship('Email', backref='admin')
 
+
+'''
 # make sure every user is logged in no matter the link
 @app.before_request
 def before_request():
@@ -112,7 +114,7 @@ def before_request():
     exempt_routes = [
         'user_login_page', 'admin_login_page', 'login', 'subscribe', 'index', 'serve_static',
         'verify_otp', 'generate_otp', 'send_otp_email', 'add_user', 'send_otp',
-        'add_admin_page', 'delete_admin'  # Add the admin-related routes
+        'add_admin_page', 'delete_admin', 'forgot_password', 'reset_password'  # Add the admin-related routes
     ]
 
     # Exempt static files from authentication
@@ -130,7 +132,7 @@ def before_request():
     if request.endpoint and request.endpoint in ['add_admin_page', 'delete_admin'] and not current_user.is_admin:
         abort(403)  # or redirect to a forbidden page, as appropriate
 
-
+'''
 
 # Customized Unauthorized error handler
 @app.errorhandler(401)
@@ -290,7 +292,23 @@ def add_admin():
 
     return redirect(url_for('add_admin_page'))
 
+# Define a route for deleting admin
+@app.route('/admin/delete/<int:id>', methods=['POST'])
+def delete_admin(id):
+    # Retrieve the admin with the specified ID from the database
+    admin_to_delete = Admin.query.get(id)
 
+    if admin_to_delete:
+        # Delete the admin from the database
+        db.session.delete(admin_to_delete)
+        db.session.commit()
+
+        flash('Admin user deleted successfully!', 'success')
+    else:
+        flash('Admin user not found!', 'error')
+
+    # Redirect to the page displaying all admins
+    return redirect(url_for('add_admin'))
 
 #verify email for admin
 @app.route('/main')
@@ -497,6 +515,11 @@ def delete_product():
     # Check if the product exists
     if product:
         try:
+            # Check for and delete related order items
+            order_items = OrderItem.query.filter_by(product_id=product_id).all()
+            for order_item in order_items:
+                db.session.delete(order_item)
+
             # Delete the associated image file
             image_path = os.path.join(app.config['UPLOAD_FOLDER'], product.image_filename)
             if os.path.exists(image_path):
@@ -504,6 +527,8 @@ def delete_product():
 
             # Delete the product from the database
             db.session.delete(product)
+
+            # Commit the changes
             db.session.commit()
 
             return redirect('/manage-products')
@@ -512,6 +537,7 @@ def delete_product():
             return jsonify({"status": "error", "message": f"Error deleting product: {str(e)}"})
     else:
         return jsonify({"status": "error", "message": "Product not found"})
+
 
 
 # Route for the index page (main route)
@@ -814,7 +840,8 @@ def process_order(user_id):
             order_id=new_order.id,
             product_name=item.product_name,
             product_price=item.product_price,
-            quantity=item.quantity
+            quantity=item.quantity,
+            product_id =item.product_id
         )
         db.session.add(order_item)
 
