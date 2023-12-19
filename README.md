@@ -17,7 +17,7 @@ git clone https://github.com/Levi-LMN/Retailsysx.git
 ```
 
 2. Create a virtual environment and activate it  
-a. Navigate to the root folder 
+    a. Navigate to the root folder 
 ```dockerignore
 cd Retailsysx
 ```
@@ -37,6 +37,7 @@ source venv/bin/activate
 
 
 
+
 3. Install the dependencies  
 
 You'll need the following modules installed in your pc 
@@ -47,6 +48,8 @@ pip install Flask-SQLAlchemy
 pip install Flask-Mail
 pip install Flask-Login
 pip install Flask-Migrate
+pip install Flask-Bcrypt
+
 
 ```
 

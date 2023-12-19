@@ -6,7 +6,8 @@ packages = [
     "Flask-SQLAlchemy",
     "Flask-Mail",
     "Flask-Login",
-    "Flask-Migrate"
+    "Flask-Migrate",
+    "Flask-Bcrypt"
 ]
 
 for package in packages:
