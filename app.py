@@ -17,7 +17,7 @@ from flask_migrate import Migrate
 import smtplib
 from flask import jsonify
 from flask import redirect, url_for
-from flask_login import logout_user
+from flask_login import  logout_user
 from werkzeug.utils import secure_filename
 from flask import send_from_directory
 from flask import Flask, jsonify, abort
@@ -32,7 +32,7 @@ from flask import Flask, render_template, request, redirect, flash, url_for
 from flask_mail import Mail, Message
 import socket
 import logging
-
+import secrets
 
 
 app = Flask(__name__)
